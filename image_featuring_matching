@@ -1,0 +1,102 @@
+ow1 = imread("oneway1.png"); 
+ow1 = im2gray(ow1);
+ow2 = imread("oneway2.png"); 
+ow2 = im2gray(ow2);
+montage({ow1,ow2})
+
+Detecting SURF features
+The next steps are detection, extraction, and matching. Here we detect SURF features. 
+points1 = detectSURFFeatures(ow1);
+points2 = detectSURFFeatures(ow2);
+Keeping strongest detections (optional) 
+In this example, we chose to keep only the fifty strongest detections. This is not a generally required step, but sometimes you may want to focus on only the strongest feature detections to help match the best features. It also makes the detections much easier to see in this case, which is important since we will refer back to specific feature locations when we perform feature matching. 
+nKeep = 50; 
+points1 = selectStrongest(points1,nKeep);
+points2 = selectStrongest(points2,nKeep);
+
+imshow(ow1)
+hold on 
+plot(points1)
+hold off 
+
+imshow(ow2)
+hold on
+plot(points2)
+hold off
+clf
+Extracting feature descriptors
+Next, extract the feature descriptors and valid points. You'll need the feature descriptors to match, and the valid points to visualize the matched locations next. 
+[features1,validPoints1] = extractFeatures(ow1,points1);
+[features2,validPoints2] = extractFeatures(ow2,points2);
+
+Matching features
+Default settings
+First, examine the results of matching features using matchFeatures with the default settings. You'll see we don't get very many matches (only 6 pairs) with these two images. 
+indexPairs = matchFeatures(features1,features2)
+
+matchedPoints1 = validPoints1(indexPairs(:,1));
+matchedPoints2 = validPoints2(indexPairs(:,2)); 
+
+showMatchedFeatures(ow1,ow2,matchedPoints1,matchedPoints2,"montage")
+
+Match threshold settings
+To increase the number of matches, you can try increasing the "MatchThreshold". This allows features that are further apart in their feature space to be matched. For features like SURF, this parameter is a percent value in the range (0,100], with a default value of 1. 
+indexPairs = matchFeatures(features1,features2,"MatchThreshold",1)
+
+matchedPoints1 = validPoints1(indexPairs(:,1));
+matchedPoints2 = validPoints2(indexPairs(:,2)); 
+
+showMatchedFeatures(ow1,ow2,matchedPoints1,matchedPoints2,"montage")
+
+Max ratio settings
+You should have seen that even increasing the match threshold to the maximum possible value only matched 8 pairs of features. Some of the "obvious looking" features that were detected in both, such as the pointed parts on the front and sides of the arrows were still not matched. While the distance threshold may have been maximized, there was another parameter affecting the resulting matches: the "MaxRatio" parameter, which is a value in the range (0,1] used to reject "ambiguous matches". If a feature in one image is matched to multiple features in the other, the matches are considered ambiguous if the ratio of the distances is above the maximum set by the "MaxRatio" parameter. 
+In the case of these one way sign images, there are a number of places where the blob shapes are very similar and therefore with the default "MaxRatio" of 0.6, many matches are rejected. Use the slider below to change the "MaxRatio" and observe the results. You should see more matches for values closer to 1. 
+indexPairs = matchFeatures(features1,features2,"MatchThreshold",2,...
+                                                "MaxRatio",1)
+
+matchedPoints1 = validPoints1(indexPairs(:,1));
+matchedPoints2 = validPoints2(indexPairs(:,2)); 
+
+showMatchedFeatures(ow1,ow2,matchedPoints1,matchedPoints2,"montage")
+Sometimes it is easier to view one match at a time. Make sure the "MaxRatio" above is 1 to allow all ambiguous matches, and use the slider below to observe the results. Do you see why some of the non-unique match pairs were considered ambiguous? 
+nMatches = length(matchedPoints1); 
+idx = 11
+showMatchedFeatures(ow1,ow2,matchedPoints1(idx),matchedPoints2(idx),"montage")
+
+Unique flag 
+Increasing the "MaxRatio" parameter to 1 increases the matches and we see that for example the pointed ends of the arrows are matched. However, it also introduced quite a few non-unique matches. To eliminate these, set the unique flag to true (the default value is false). 
+indexPairs = matchFeatures(features1,features2,"MatchThreshold",2,...
+                                                "MaxRatio",1,...
+                                                "Unique",false)
+
+matchedPoints1 = validPoints1(indexPairs(:,1));
+matchedPoints2 = validPoints2(indexPairs(:,2)); 
+
+showMatchedFeatures(ow1,ow2,matchedPoints1,matchedPoints2,"montage");
+
+Stop Signs
+Now that you've seen the effects some individual name-value pairs have on feature matching, explore combinations of all of them using a new pair of sign images. Use the sliders and dropdowns below to try various combinations of name-value pairs and observe the results. 
+stop1RGB = imread("stop1.jpg");
+stop2RGB = imread("stop2.jpg");
+montage({stop1RGB,stop2RGB})
+clf
+Convert the RGB color images to grayscale for feature detection and extraction.
+stop1 = im2gray(stop1RGB);
+stop2 = im2gray(stop2RGB);
+Detect-Extract-Match (choose combined settings)
+pts1 = detectSURFFeatures(stop1);
+pts2 = detectSURFFeatures(stop2);
+
+[feat1,validPts1] = extractFeatures(stop1,pts1);
+[feat2,validPts2] = extractFeatures(stop2,pts2);
+
+indexPairs = matchFeatures(feat1,feat2,"MatchThreshold",21,...
+                                        "MaxRatio",0.7,...
+                                        "Metric",'SAD',...
+                                        "Unique",true) ;
+
+matchedPoints1 = validPts1(indexPairs(:,1));
+matchedPoints2 = validPts2(indexPairs(:,2));
+
+Here, since the two images are nearly the same size and of the same object in different conditions, the "blend" option works well to visualize the matches. 
+showMatchedFeatures(stop1,stop2,matchedPoints1,matchedPoints2,"blend")
