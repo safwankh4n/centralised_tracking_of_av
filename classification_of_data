@@ -1,0 +1,59 @@
+fileLocation = uigetdir();
+dsRoad =imageDatastore(fileLocation, "IncludeSubfolders", true, "LabelSource","foldernames");
+categories(dsRoad.Labels)
+
+[dsTrain, dsTest] = splitEachLabel(dsRoad, 0.85, "randomize");
+countEachLabel(dsRoad)
+countEachLabel(dsTest)
+countEachLabel(dsTrain)
+
+RoadTable = extractRoadFeatures(dsTrain);
+
+%function roadTable = extractRoadFeature(ds)
+
+intensityAvg = [];
+intensitySTD = [];
+imgName = [];
+
+%while hasdata(ds)
+
+    [img,info] = read(ds);
+    
+    img = im2double(img);
+    img = im2gray(img);
+    
+    intensityAvg = [intensityAvg; mean(img(:))];
+    intensitySTD = [intensitySTD; std(img(:))];
+    
+    [~,name,ext] = fileparts(info.Filename);
+    imgName = [imgName; string(name) + string(ext)];
+
+%end
+
+label = categorical(ds.Labels);
+roadTable = table(label,imgName,intensityAvg,intensitySTD);
+%end
+
+
+
+%visualise Results
+
+histogram(roadTable.intensityAvg(RoadTable.label == "snow"), 20)
+hold on
+hyistogram(RoadTable.intensityAvg(RoadTable.label == "no snow"), 20)
+hold off
+xlabel("mean intensity")
+legend("snow" "no snow")
+
+histogram(roadTable.intensitySTD(RoadTable.label == "snow"), 20)
+hold on
+hyistogram(RoadTable.intensitySTD(RoadTable.label == "no snow"), 20)
+hold off
+xlabel("mean standard deviation")
+legend("snow" "no snow")
+
+
+
+gscatter(roadTable.intensityAvg, roadTable.intensitySTD, roadTable.label)
+
+
